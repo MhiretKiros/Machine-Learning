@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Destination Recommender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e9ffe9;
+            border: 1px solid #28a745;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Travel Destination Recommender</h2>
+        <form id="travelForm">
+            <div class="form-group">
+                <label for="Age">Age:</label>
+                <input type="number" id="Age" name="Age" required>
+            </div>
+            <div id="dropdowns"></div>
+            <button type="submit">Get Recommendation</button>
+        </form>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdownsContainer = document.getElementById('dropdowns');
+
+            const options = {
+                Gender: ["Male", "Female", "Other"],
+                Budget: ["Low", "Medium", "High"],
+                Preferred_Climate: ["Tropical", "Cold", "Warm"],
+                Interest: ["Adventure", "Relaxation", "Culture", "Nature"],
+                Travel_Duration: ["Short (1-3 days)", "Medium (4-7 days)", "Long (8+ days)"],
+                Accommodation_Preference: ["Hotel", "Hostel", "Resort", "Apartment"],
+                Transportation_Mode: ["Car", "Flight", "Train", "Bus"],
+                Activity_Level: ["Low", "Moderate", "High"],
+                Food_Preference: ["Vegetarian", "Non-Vegetarian", "Vegan", "No Preference"],
+                Travel_Type: ["Solo", "Couple", "Family", "Group"]
+            };
+
+            const fields = Object.keys(options);
+
+            fields.forEach(key => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+
+                const label = document.createElement('label');
+                label.textContent = key + ':';
+                label.htmlFor = key;
+
+                const select = document.createElement('select');
+                select.name = key;
+                select.id = key;
+                select.required = true;
+
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "Select an option";
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                select.appendChild(defaultOption);
+
+                options[key].forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+
+                formGroup.appendChild(label);
+                formGroup.appendChild(select);
+                dropdownsContainer.appendChild(formGroup);
+            });
+
+            document.getElementById('travelForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
+
+                const formData = new FormData(this);
+                const data = {};
+                formData.forEach((value, key) => {
+                    data[key] = key === 'Age' ? parseInt(value) : value;
+                });
+
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Loading recommendation...';
+
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/predict', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        resultDiv.textContent = `Recommended Destination: ${result.predicted_destination}`;
+                        resultDiv.style.backgroundColor = '#e9ffe9';
+                        resultDiv.style.borderColor = '#28a745';
+                    } else {
+                        resultDiv.textContent = `Error: ${result.detail}`;
+                        resultDiv.style.backgroundColor = '#ffe9e9';
+                        resultDiv.style.borderColor = '#dc3545';
+                    }
+                } catch (error) {
+                    resultDiv.textContent = 'Error: Unable to get recommendation. Please try again later.';
+                    resultDiv.style.backgroundColor = '#ffe9e9';
+                    resultDiv.style.borderColor = '#dc3545';
+                    console.error('Error submitting form:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
